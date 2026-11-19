@@ -1,0 +1,6 @@
+# Compiled binaries
+pqc-engine/kem_demo
+pqc-engine/pqc_encrypt_demo
+
+# liboqs dependency
+liboqs/
