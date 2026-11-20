@@ -25,49 +25,55 @@ int main(void) {
     uint8_t *shared_secret_enc = malloc(kem->length_shared_secret);
     uint8_t *shared_secret_dec = malloc(kem->length_shared_secret);
 
+    int result = 1;
+
     if (!public_key || !secret_key || !ciphertext ||
         !shared_secret_enc || !shared_secret_dec) {
         printf("Memory allocation failed\n");
-        return 1;
+        goto cleanup;
     }
 
     if (OQS_KEM_keypair(kem, public_key, secret_key) != OQS_SUCCESS) {
         printf("Key generation failed\n");
-        return 1;
+        goto cleanup;
     }
 
     printf("\n[1] Keypair generated successfully\n");
 
-    if (OQS_KEM_encaps(kem, ciphertext, shared_secret_enc, public_key) != OQS_SUCCESS) {
+    if (OQS_KEM_encaps(kem, ciphertext, shared_secret_enc, public_key)
+        != OQS_SUCCESS) {
         printf("Encapsulation failed\n");
-        return 1;
+        goto cleanup;
     }
 
     printf("[2] Encapsulation successful\n");
 
-    if (OQS_KEM_decaps(kem, shared_secret_dec, ciphertext, secret_key) != OQS_SUCCESS) {
+    if (OQS_KEM_decaps(kem, shared_secret_dec, ciphertext, secret_key)
+        != OQS_SUCCESS) {
         printf("Decapsulation failed\n");
-        return 1;
+        goto cleanup;
     }
 
     printf("[3] Decapsulation successful\n");
 
     if (memcmp(shared_secret_enc, shared_secret_dec,
-              kem->length_shared_secret) == 0) {
-        printf("[4] SUCCESS: Shared secrets match!\n");
-    } else {
+              kem->length_shared_secret) != 0) {
         printf("[4] ERROR: Shared secrets do not match!\n");
-        return 1;
+        goto cleanup;
     }
 
-    OQS_KEM_free(kem);
-    free(public_key);
-    free(secret_key);
-    free(ciphertext);
-    free(shared_secret_enc);
-    free(shared_secret_dec);
+    printf("[4] SUCCESS: Shared secrets match!\n");
 
     printf("\nQuantumVault PQC test completed successfully!\n");
+    result = 0;
 
-    return 0;
+cleanup:
+    free(public_key);
+    OQS_MEM_secure_free(secret_key, kem->length_secret_key);
+    free(ciphertext);
+    OQS_MEM_secure_free(shared_secret_enc, kem->length_shared_secret);
+    OQS_MEM_secure_free(shared_secret_dec, kem->length_shared_secret);
+    OQS_KEM_free(kem);
+
+    return result;
 }
